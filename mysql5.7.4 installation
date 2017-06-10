@@ -1,0 +1,41 @@
+---
+- name: Setting mysql 5.7.4
+  hosts: digitalocean
+  remote_user: digitalocean
+  become: True
+  become_method: sudo
+  become_user: root
+  gather_facts: True
+  tasks:
+
+     #- name: install libaio1
+      # apt: pkg=libaio1 state=installed update_cache=true
+
+     - name: creating folder myql on remote
+       command: "{{item}}"
+       with_items:
+          - mkdir /home/digitalocean/mysql
+          - chmod -R 0777 /home/digitalocean/mysql
+
+     - name: Transfer the mysql deb bundle to to remote server from local
+       copy: src=/home/robins/ANSIBLE_INPUTS/mysql/mysql-server_5.7.4-m14-2ubuntu14.04_amd64.deb-bundle.tar dest=/home/digitalocean/mysql mode=0777
+
+     - name: Extracting mysql tar
+       command: "{{item}}"
+       with_items:
+          - mkdir /home/digitalocean/mysql/extract
+          - tar -xvf /home/digitalocean/mysql/mysql-server_5.7.4-m14-2ubuntu14.04_amd64.deb-bundle.tar -C /home/digitalocean/mysql/extract/
+          - chmod -R 0777 /home/digitalocean/mysql/extract
+
+     - name: Installing myql  NOTE = "PRESS ENTER IF FLOW STOPS IN MYSQL INSTALLATION"
+       command: "{{item}}"
+       with_items:
+          - debconf-set-selections <<< 'mysql-server-5.7 mysql-server/root_password password xyx@123'
+          - debconf-set-selections <<< 'mysql-server-5.7 mysql-server/root_password_again password xyz@123'
+          - dpkg-preconfigure -f /home/digitalocean/mysql/extract/mysql-community-server_5.7.4-m14-2ubuntu14.04_amd64.deb
+          - dpkg -i /home/digitalocean/mysql/extract/mysql-common_5.7.4-m14-2ubuntu14.04_amd64.deb -y
+          - dpkg -i /home/digitalocean/mysql/extract/mysql-community-client_5.7.4-m14-2ubuntu14.04_amd64.deb -y
+          - dpkg -i /home/digitalocean/mysql/extract/mysql-client_5.7.4-m14-2ubuntu14.04_amd64.deb -y
+          - dpkg -i /home/digitalocean/mysql/extract/mysql-community-server_5.7.4-m14-2ubuntu14.04_amd64.deb -y
+          - dpkg -i /home/digitalocean/mysql/extract/mysql-server_5.7.4-m14-2ubuntu14.04_amd64.deb -y
+          - apt-get -f install -y
